@@ -1,239 +1,148 @@
-// Canvas
-const { body } = document;
-const canvas = document.createElement('canvas');
-const context = canvas.getContext('2d');
 const width = 500;
 const height = 700;
-const screenWidth = window.screen.width;
-const canvasPosition = screenWidth / 2 - width / 2;
-const isMobile = window.matchMedia('(max-width: 600px)');
-const gameOverEl = document.createElement('div');
+const offset = 10;
 
-// Paddle
-const paddleHeight = 10;
-const paddleWidth = 50;
-const paddleDiff = 25;
-let paddleBottomX = 225;
-let paddleTopX = 225;
-let playerMoved = false;
-let paddleContact = false;
+const body = document.body;
+const screenWidth = body.scrollWidth;
 
-// Ball
-let ballX = 250;
-let ballY = 350;
-const ballRadius = 5;
+const canvas = document.createElement('canvas');
+const context = canvas.getContext('2d');
 
-// Speed
-let speedY;
-let speedX;
-let trajectoryX;
-let computerSpeed;
+canvas.addEventListener('mousemove', (e) => {
+  let offsetLeft = screenWidth / 2 - width / 2;
+  user.x = e.clientX - offsetLeft;
+  canvas.style.cursor = 'none';
+});
 
-// Change Mobile Settings
-if (isMobile.matches) {
-  speedY = -2;
-  speedX = speedY;
-  computerSpeed = 4;
-} else {
-  speedY = -1;
-  speedX = speedY;
-  computerSpeed = 3;
+const ball = {
+  x: width / 2,
+  y: height / 2,
+  radius: 5,
+  velocityX: 0,
+  velocityY: 5,
+  speed: 5,
+};
+
+const user = {
+  x: width / 2 - 25,
+  y: height - 20,
+  width: 50,
+  height: 10,
+  score: 0,
+};
+
+const com = {
+  x: width / 2 - 25,
+  y: offset,
+  width: 50,
+  height: 10,
+  score: 0,
+};
+
+function createCanvas() {
+  canvas.width = width;
+  canvas.height = height;
+  body.appendChild(canvas);
+  render();
 }
 
-// Score
-let playerScore = 0;
-let computerScore = 0;
-const winningScore = 7;
-// let isGameOver = true;
-// let isNewGame = true;
-
-// Render Everything on Canvas
-function renderCanvas() {
-  // Canvas Background
+function render() {
+  // 渲染背景
   context.fillStyle = 'black';
   context.fillRect(0, 0, width, height);
-
-  // Paddle Color
+  // 板
   context.fillStyle = 'white';
-
-  // Player Paddle (Bottom)
-  context.fillRect(paddleBottomX, height - 20, paddleWidth, paddleHeight);
-
-  // Computer Paddle (Top)
-  context.fillRect(paddleTopX, 10, paddleWidth, paddleHeight);
-
-  // Dashed Center Line
+  context.fillRect(com.x, com.y, com.width, com.height);
+  context.fillRect(user.x, user.y, user.width, user.height);
+  // 线
   context.beginPath();
   context.setLineDash([4]);
   context.moveTo(0, 350);
   context.lineTo(500, 350);
   context.strokeStyle = 'grey';
   context.stroke();
-
-  // Ball
+  // 球
   context.beginPath();
-  context.arc(ballX, ballY, ballRadius, 0, 2 * Math.PI);
+  context.arc(ball.x, ball.y, ball.radius, 2 * Math.PI, false);
   context.fillStyle = 'white';
   context.fill();
 
-  // Score
+  // 分数
+  context.fillStyle = '#FFF';
   context.font = '32px Courier New';
-  context.fillText(playerScore, 20, canvas.height / 2 + 50);
-  context.fillText(computerScore, 20, canvas.height / 2 - 30);
+  context.fillText(com.score, 20, height / 2 - 50);
+  context.fillText(user.score, 20, height / 2 + 70);
 }
 
-// Create Canvas Element
-function createCanvas() {
-  canvas.width = width;
-  canvas.height = height;
-  body.appendChild(canvas);
-  renderCanvas();
+function resetBall() {
+  ball.x = width / 2;
+  ball.y = height / 2;
+  ball.velocityY = -ball.velocityY;
+  ball.speed = 7;
 }
 
-// Remove this
-// createCanvas();
-
-// Reset Ball to Center
-function ballReset() {
-  ballX = width / 2;
-  ballY = height / 2;
-  speedY = -3;
-  paddleContact = false;
-}
-
-// Adjust Ball Movement
-function ballMove() {
-  // Vertical Speed
-  ballY += -speedY;
-  // Horizontal Speed
-  if (playerMoved && paddleContact) {
-    ballX += speedX;
+function update() {
+  ball.y += ball.velocityY;
+  ball.x += ball.velocityX;
+  // 左右边界碰撞
+  if (ball.x - ball.radius < 0 || ball.x + ball.radius > width) {
+    ball.velocityX = -ball.velocityX;
   }
+
+  // 得分
+  if (ball.y < 0) {
+    user.score++;
+    resetBall();
+  }
+  if (ball.y > height) {
+    com.score++;
+    resetBall();
+  }
+  console.log(collision());
+  // 板碰撞
+  if (collision()) {
+    let player = ball.y > height / 2 ? user : com;
+    let collidePoint = ball.x - (player.x + player.width / 2);
+    // -1 到 1
+    let collideRate = collidePoint / (player.width / 2);
+
+    // 反射角度
+    let angle = collideRate * (Math.PI / 4);
+    // console.log(angle);
+
+    // let direction = ball.x + ball.radius < canvas.width / 2 ? 1 : -1;
+    // ball.velocityX = ball.speed * Math.cos(angle);
+    // ball.velocityY = ball.speed * Math.sin(angle);
+    // ball.speed += 0.1;
+
+    let direction = ball.y + ball.radius < canvas.height / 2 ? 1 : -1;
+    ball.velocityY = direction * ball.speed * Math.cos(angle);
+    ball.velocityX = ball.speed * Math.sin(angle);
+    ball.speed += 0.1;
+  }
+
+  // AI
+  let computerLevel = 0.1;
+  com.x += (ball.x - (com.x + com.width / 2)) * computerLevel;
 }
 
-// Determine What Ball Bounces Off, Score Points, Reset Ball
-function ballBoundaries() {
-  // Bounce off Left Wall
-  if (ballX < 0 && speedX < 0) {
-    speedX = -speedX;
-  }
-  // Bounce off Right Wall
-  if (ballX > width && speedX > 0) {
-    speedX = -speedX;
-  }
-  // Bounce off player paddle (bottom)
-  if (ballY > height - paddleDiff) {
-    if (ballX > paddleBottomX && ballX < paddleBottomX + paddleWidth) {
-      paddleContact = true;
-      // Add Speed on Hit
-      if (playerMoved) {
-        speedY -= 1;
-        // Max Speed
-        if (speedY < -5) {
-          speedY = -5;
-          computerSpeed = 6;
-        }
-      }
-      speedY = -speedY;
-      trajectoryX = ballX - (paddleBottomX + paddleDiff);
-      speedX = trajectoryX * 0.3;
-    } else if (ballY > height) {
-      // Reset Ball, add to Computer Score
-      ballReset();
-      computerScore++;
-    }
-  }
-  // Bounce off computer paddle (top)
-  if (ballY < paddleDiff) {
-    if (ballX > paddleTopX && ballX < paddleTopX + paddleWidth) {
-      // Add Speed on Hit
-      if (playerMoved) {
-        speedY += 1;
-        // Max Speed
-        if (speedY > 5) {
-          speedY = 5;
-        }
-      }
-      speedY = -speedY;
-    } else if (ballY < 0) {
-      // Reset Ball, add to Player Score
-      ballReset();
-      playerScore++;
-    }
-  }
+function collision() {
+  let userContact =
+    ball.y + ball.radius >= user.y &&
+    ball.x >= user.x &&
+    ball.x <= user.x + user.width;
+  let comContact =
+    ball.y - ball.radius <= com.y &&
+    ball.x >= com.x &&
+    ball.x <= com.x + com.width;
+  return userContact || comContact;
 }
 
-// Computer Movement
-function computerAI() {
-  if (playerMoved) {
-    if (paddleTopX + paddleDiff < ballX) {
-      paddleTopX += computerSpeed;
-    } else {
-      paddleTopX -= computerSpeed;
-    }
-  }
-}
-
-function showGameOverEl(winner) {
-  // Hide Canvas
-  // // Container
-  // gameOverEl.textContent = '';
-  // gameOverEl.classList.add('game-over-container');
-  // // Title
-  // const title = document.createElement('h1');
-  // title.textContent = `${winner} Wins!`;
-  // // Button
-  // const playAgainBtn = document.createElement('button');
-  // playAgainBtn.setAttribute('onclick', 'startGame()');
-  // playAgainBtn.textContent = 'Play Again';
-  // // Append
-}
-
-// Check If One Player Has Winning Score, If They Do, End Game
-function gameOver() {
-  // if (playerScore === winningScore || computerScore === winningScore) {
-  //   isGameOver = ;
-  //   // Set Winner
-  //   let winner = ;
-  //   showGameOverEl(winner);
-  // }
-}
-
-// Called Every Frame
 function animate() {
-  renderCanvas();
-  // ballMove();
-  // ballBoundaries();
-  // computerAI();
+  update();
+  render();
   requestAnimationFrame(animate);
 }
 
-// Start Game, Reset Everything
-function startGame() {
-  // if (isGameOver && !isNewGame) {
-
-  // }
-  // isGameOver = ;
-  // isNewGame = ;
-  playerScore = 0;
-  computerScore = 0;
-  ballReset();
-  createCanvas();
-  animate();
-  canvas.addEventListener('mousemove', (e) => {
-    playerMoved = true;
-    // Compensate for canvas being centered
-    paddleBottomX = e.clientX - canvasPosition - paddleDiff;
-    if (paddleBottomX < paddleDiff) {
-      paddleBottomX = 0;
-    }
-    if (paddleBottomX > width - paddleWidth) {
-      paddleBottomX = width - paddleWidth;
-    }
-    // Hide Cursor
-    canvas.style.cursor = 'none';
-  });
-}
-
-// On Load
-startGame();
+createCanvas();
+animate();
