@@ -108,12 +108,6 @@ function update() {
 
     // 反射角度
     let angle = collideRate * (Math.PI / 4);
-    // console.log(angle);
-
-    // let direction = ball.x + ball.radius < canvas.width / 2 ? 1 : -1;
-    // ball.velocityX = ball.speed * Math.cos(angle);
-    // ball.velocityY = ball.speed * Math.sin(angle);
-    // ball.speed += 0.1;
 
     let direction = ball.y + ball.radius < canvas.height / 2 ? 1 : -1;
     ball.velocityY = direction * ball.speed * Math.cos(angle);
@@ -122,7 +116,7 @@ function update() {
   }
 
   // AI
-  let computerLevel = 0.1;
+  let computerLevel = 0.15;
   com.x += (ball.x - (com.x + com.width / 2)) * computerLevel;
 }
 
